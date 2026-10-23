@@ -1,0 +1,25 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netflix-frontend
+  namespace: netflix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netflix-frontend
+  template:
+    metadata:
+      labels:
+        app: netflix-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: 572691076193.dkr.ecr.us-east-1.amazonaws.com/netflix-frontend-k8s:5e52951650d8cb2c087bf45be78bad0526353292
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: API_URL
+              value: "/"

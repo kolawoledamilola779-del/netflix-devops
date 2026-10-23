@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./netflix-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./netflix-backend/.env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  frontend:
+    build:
+      context: ./netflix-frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend

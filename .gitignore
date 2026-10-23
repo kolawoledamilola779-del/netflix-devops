@@ -1,0 +1,25 @@
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/*credentials.env
+
+# Java / Maven
+**/target/
+
+# Node.js / React
+**/node_modules/
+**/build/
+
+# IDE and operating system files
+**/.vscode/
+**/.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

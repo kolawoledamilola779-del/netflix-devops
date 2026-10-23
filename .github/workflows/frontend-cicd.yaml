@@ -1,0 +1,83 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'netflix-frontend/**'
+      - '.github/workflows/frontend-cicd.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'netflix-frontend/**'
+      - '.github/workflows/frontend-cicd.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push:
+    name: Build and Push Frontend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: netflix-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: netflix-frontend
+        run: npm ci
+
+      - name: Build React application
+        working-directory: netflix-frontend
+        env:
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
+        run: npm run build
+
+      - name: Configure AWS credentials using OIDC
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::572691076193:role/GitHubActionsNetflixFrontendRole
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        if: github.event_name == 'push'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t netflix-frontend:${{ github.sha }} \
+            ./netflix-frontend
+
+      - name: Tag Docker image for ECR
+        if: github.event_name == 'push'
+        env:
+          ECR_REGISTRY: 572691076193.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: netflix-frontend-k8s
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker tag netflix-frontend:${IMAGE_TAG} \
+            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+      - name: Push Docker image to ECR
+        if: github.event_name == 'push'
+        env:
+          ECR_REGISTRY: 572691076193.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: netflix-frontend-k8s
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push \
+            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}

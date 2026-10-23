@@ -1,0 +1,9 @@
+id="7v6k3m"
+.env
+.env.*
+atlas-credentials.env
+.git
+.github
+
+.vscode
+*.log

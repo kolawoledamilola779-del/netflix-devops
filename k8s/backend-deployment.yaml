@@ -1,0 +1,25 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netflix-backend
+  namespace: netflix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netflix-backend
+  template:
+    metadata:
+      labels:
+        app: netflix-backend
+    spec:
+      containers:
+        - name: backend
+          image: 572691076193.dkr.ecr.us-east-1.amazonaws.com/netflix-backend-k8s:df1dcc52f2bcff78298cc94cba93fd813e735cdd
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: netflix-mongodb-secret

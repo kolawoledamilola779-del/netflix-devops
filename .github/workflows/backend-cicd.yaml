@@ -1,0 +1,68 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'netflix-backend/**'
+      - '.github/workflows/backend-cicd.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push:
+    name: Build and Push Backend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: netflix-backend/pom.xml
+
+      - name: Build Spring Boot application
+        working-directory: netflix-backend
+        run: ./mvnw -B -DskipTests package
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::572691076193:role/GitHubActionsNetflixBackendRole
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t netflix-backend:${{ github.sha }} \
+            ./netflix-backend
+
+      - name: Tag Docker image for ECR
+        env:
+          ECR_REGISTRY: 572691076193.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: netflix-backend-k8s
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker tag netflix-backend:${IMAGE_TAG} \
+            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+      - name: Push Docker image to ECR
+        env:
+          ECR_REGISTRY: 572691076193.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: netflix-backend-k8s
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push \
+            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
